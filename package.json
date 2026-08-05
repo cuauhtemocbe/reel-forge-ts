@@ -1,0 +1,53 @@
+{
+  "name": "reel-forge-ts",
+  "version": "0.1.0",
+  "description": "Generador local de reels/videos verticales a partir de imágenes y un guion de texto, con voz TTS, captions animados y edición decidida por Claude Code CLI, renderizado con Remotion.",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "studio": "remotion studio src/remotion/index.ts",
+    "generate": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "validate": "make validate",
+    "prepare": "husky",
+    "clean": "rm -rf node_modules .pnpm-store output/*"
+  },
+  "dependencies": {
+    "@elevenlabs/elevenlabs-js": "2.60.0",
+    "@remotion/bundler": "4.0.506",
+    "@remotion/captions": "4.0.506",
+    "@remotion/cli": "4.0.506",
+    "@remotion/media-utils": "4.0.506",
+    "@remotion/renderer": "4.0.506",
+    "@remotion/transitions": "4.0.506",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.506",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.7",
+    "@types/node": "26.1.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/ui": "4.1.10",
+    "husky": "9.1.7",
+    "lint-staged": "17.3.0",
+    "tsx": "4.23.5",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  }
+}

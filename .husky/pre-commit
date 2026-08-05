@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Secret scanning runs on every commit (fast, unlike the full validation suite below)
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --no-banner --redact
+  if [ $? -ne 0 ]; then
+    echo "❌ gitleaks found a potential secret in staged changes — commit blocked"
+    exit 1
+  fi
+else
+  echo "⚠️  gitleaks not installed — skipping secret scan (install: https://github.com/gitleaks/gitleaks#installing)"
+fi
+
+# Lint/format staged files (fast — only touches what's staged)
+pnpm exec lint-staged
+if [ $? -ne 0 ]; then
+  echo "❌ lint-staged found issues in staged files — commit blocked"
+  exit 1
+fi
+
+echo "⚡ Skipping full validations on regular commit (validations run on merge only)"
+exit 0

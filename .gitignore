@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Package Manager Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Package Manager Lock Files (keep pnpm-lock.yaml versioned)
+package-lock.json
+yarn.lock
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Remotion
+.remotion/
+
+# Environment
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Coverage
+coverage/
+*.lcov
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.sw?
+
+# Claude Code
+.mcp.json
+.claude/
+
+# Reel pipeline working data — inputs/outputs are personal media, not source
+input/*
+!input/example/
+!input/.gitkeep
+output/*
+!output/.gitkeep
+
+# Working copies of user images/audio that generate.ts stages into public/ so Remotion's
+# staticFile() can serve them — derived data, regenerated on every run, not source.
+public/reels/
