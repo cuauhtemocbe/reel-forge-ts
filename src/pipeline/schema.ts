@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+/** Modo de corrida de `pnpm generate`: `all` (default, TTS + plan + render), `audio`
+ * (solo TTS, no renderiza) o `video` (reusa el TTS cacheado de una corrida anterior,
+ * salta ElevenLabs y solo rehace plan de edición + render). */
+export const GenerateModeSchema = z.enum(["all", "audio", "video"]);
+export type GenerateMode = z.infer<typeof GenerateModeSchema>;
+
 /** Transición de entrada de una escena hacia la siguiente imagen. */
 export const TransitionTypeSchema = z.enum([
   "fade",
