@@ -37,6 +37,20 @@ function publicAssetPath(relativePath: string): string {
   return `/public/${relativePath.split("/").map(encodeURIComponent).join("/")}`;
 }
 
+/**
+ * Asegura un espacio después de puntuación de cierre (`.,;:!?`) cuando el guion no lo
+ * tiene, y colapsa espacios repetidos (sin tocar saltos de línea, que marcan pausas
+ * intencionales entre "beats" del guion). Defensivo: tanto el corte de páginas de
+ * captions por oración (ver `paginateBySentence`) como el prompt del plan de edición
+ * dependen de que la puntuación esté bien separada de la palabra siguiente.
+ */
+export function normalizeScriptText(text: string): string {
+  return text
+    .replace(/([.,;:!?])(?=[^\s.,;:!?])/gu, "$1 ")
+    .replace(/[ \t]+/g, " ")
+    .trim();
+}
+
 async function listImageFiles(imagesDir: string): Promise<string[]> {
   const entries = await readdir(imagesDir, { withFileTypes: true });
   return entries
@@ -73,7 +87,7 @@ export async function generateReel(inputDir: string, mode: GenerateMode = "all")
     throw new Error(`No se encontró ${scriptPath}. Cada input necesita un script.txt.`);
   }
 
-  const scriptText = (await readFile(scriptPath, "utf-8")).trim();
+  const scriptText = normalizeScriptText(await readFile(scriptPath, "utf-8"));
   if (!scriptText) {
     throw new Error(`${scriptPath} está vacío.`);
   }
