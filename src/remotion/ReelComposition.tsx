@@ -9,6 +9,7 @@ import type { ReelProps, TransitionType } from "../pipeline/schema.ts";
 import { Captions } from "./components/Captions.tsx";
 import { EndCard } from "./components/EndCard.tsx";
 import { KenBurnsImage } from "./components/KenBurnsImage.tsx";
+import { Watermark } from "./components/Watermark.tsx";
 
 /** Cuántos frames dura el cruce entre dos escenas — se "come" ese tiempo de ambas
  * escenas adyacentes (comportamiento estándar de TransitionSeries de Remotion). */
@@ -56,6 +57,9 @@ export const ReelComposition: React.FC<ReelProps> = ({ scenes, audioSrc, words, 
                 durationInFrames={durationInFrames}
                 preset={scene.kenBurns}
               />
+              {outro?.logoSrc && outro?.handle ? (
+                <Watermark logoSrc={outro.logoSrc} handle={outro.handle} />
+              ) : null}
             </TransitionSeries.Sequence>
           );
 

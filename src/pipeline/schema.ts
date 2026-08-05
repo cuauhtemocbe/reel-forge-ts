@@ -93,6 +93,10 @@ export type ResolvedScene = z.infer<typeof ResolvedSceneSchema>;
  * Este texto es puramente visual: nunca se manda a ElevenLabs ni forma parte del guion. */
 export const OutroConfigSchema = z.object({
   logo: z.string().min(1),
+  /** Handle/nombre de marca opcional (ej. "@elmurotex") — si está presente, se muestra
+   * junto al logo como bug persistente durante las escenas principales (ver Watermark.tsx),
+   * no solo en la tarjeta final. */
+  handle: z.string().min(1).optional(),
   bullets: z.array(z.string().min(1)).min(1),
   cta: z.string().min(1),
   ctaUrl: z.string().min(1),
