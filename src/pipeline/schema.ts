@@ -87,6 +87,26 @@ export const ResolvedSceneSchema = SceneSchema.extend({
 });
 export type ResolvedScene = z.infer<typeof ResolvedSceneSchema>;
 
+/** `outro.json` opcional en la carpeta de input: tarjeta final de marca (logo + bullets +
+ * CTA) que se agrega después de la última escena. `logo` es el nombre de archivo dentro de
+ * la carpeta del reel (no de `images/` — no es una escena, es un asset de marca aparte).
+ * Este texto es puramente visual: nunca se manda a ElevenLabs ni forma parte del guion. */
+export const OutroConfigSchema = z.object({
+  logo: z.string().min(1),
+  bullets: z.array(z.string().min(1)).min(1),
+  cta: z.string().min(1),
+  ctaUrl: z.string().min(1),
+  durationInSeconds: z.number().min(1).max(15),
+});
+export type OutroConfig = z.infer<typeof OutroConfigSchema>;
+
+/** `OutroConfig` ya resuelto a una ruta de archivo servible por Remotion, listo para la
+ * composition. */
+export const OutroSchema = OutroConfigSchema.omit({ logo: true }).extend({
+  logoSrc: z.string(),
+});
+export type Outro = z.infer<typeof OutroSchema>;
+
 /** Input props que recibe la composition de Remotion. */
 export const ReelPropsSchema = z.object({
   scenes: z.array(ResolvedSceneSchema).min(1),
@@ -95,5 +115,6 @@ export const ReelPropsSchema = z.object({
   fps: z.number().int().positive(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
+  outro: OutroSchema.optional(),
 });
 export type ReelProps = z.infer<typeof ReelPropsSchema>;
