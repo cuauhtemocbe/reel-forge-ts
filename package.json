@@ -11,7 +11,7 @@
   },
   "scripts": {
     "studio": "remotion studio src/remotion/index.ts",
-    "generate": "tsx src/cli.ts",
+    "generate": "tsx --env-file=.env src/cli.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest",
     "test:run": "vitest run",

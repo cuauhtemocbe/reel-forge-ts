@@ -3,7 +3,6 @@ import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
-import { staticFile } from "remotion";
 import {
   DEFAULT_FPS,
   DEFAULT_HEIGHT,
@@ -19,6 +18,17 @@ const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 const projectRoot = path.resolve(import.meta.dirname, "..", "..");
 
 const naturalSort = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" }).compare;
+
+/**
+ * Equivalente Node-safe de `staticFile()`: esa función de Remotion solo agrega el prefijo
+ * `/public` cuando corre en el navegador (lee `window.remotion_staticBase`, seteado por el
+ * index.html del bundle). Acá construimos los inputProps en Node antes de renderizar, así
+ * que `staticFile()` cae a su fallback sin `/public` y el renderer pide una URL que no
+ * existe (404). Replicamos a mano la URL real que sirve @remotion/renderer.
+ */
+function publicAssetPath(relativePath: string): string {
+  return `/public/${relativePath.split("/").map(encodeURIComponent).join("/")}`;
+}
 
 async function listImageFiles(imagesDir: string): Promise<string[]> {
   const entries = await readdir(imagesDir, { withFileTypes: true });
@@ -87,9 +97,9 @@ export async function generateReel(inputDir: string): Promise<string> {
   const reelProps: ReelProps = ReelPropsSchema.parse({
     scenes: editPlan.scenes.map((scene) => ({
       ...scene,
-      imagePath: staticFile(`reels/${reelName}/images/${scene.imageFile}`),
+      imagePath: publicAssetPath(`reels/${reelName}/images/${scene.imageFile}`),
     })),
-    audioSrc: staticFile(`reels/${reelName}/audio.mp3`),
+    audioSrc: publicAssetPath(`reels/${reelName}/audio.mp3`),
     words: tts.words,
     fps: DEFAULT_FPS,
     width: DEFAULT_WIDTH,
@@ -106,6 +116,7 @@ export async function generateReel(inputDir: string): Promise<string> {
   console.log("📦 Empaquetando composition de Remotion...");
   const bundleLocation = await bundle({
     entryPoint: path.join(projectRoot, REMOTION_ENTRY_POINT),
+    publicDir: path.join(projectRoot, "public"),
   });
 
   const composition = await selectComposition({
