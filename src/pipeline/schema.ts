@@ -41,6 +41,24 @@ export const EditPlanSchema = z.object({
 });
 export type EditPlan = z.infer<typeof EditPlanSchema>;
 
+/** Escena de un `editPlan.json` de override manual: transición y Ken Burns fijos elegidos
+ * a mano en vez de por Claude, más un peso relativo — `resolveEditPlanOverride` reparte
+ * la duración real del audio entre escenas proporcionalmente a estos pesos. */
+export const SceneOverrideSchema = z.object({
+  imageFile: z.string().min(1),
+  weight: z.number().positive(),
+  transition: TransitionTypeSchema,
+  kenBurns: KenBurnsPresetSchema,
+});
+export type SceneOverride = z.infer<typeof SceneOverrideSchema>;
+
+/** `editPlan.json` opcional en la carpeta de input: si existe, `generate.ts` lo usa en vez
+ * de invocar a Claude Code CLI para decidir el plan de edición. */
+export const EditPlanOverrideSchema = z.object({
+  scenes: z.array(SceneOverrideSchema).min(1),
+});
+export type EditPlanOverride = z.infer<typeof EditPlanOverrideSchema>;
+
 /** Timestamp de una palabra dentro del audio de voz generado por TTS. */
 export const WordTimestampSchema = z.object({
   word: z.string(),
