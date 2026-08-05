@@ -1,6 +1,7 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import type { WordTimestamp } from "../../pipeline/schema.ts";
 import { paginateBySentence } from "../captionPages.ts";
+import { fontFamily } from "../font.ts";
 
 interface CaptionsProps {
   words: WordTimestamp[];
@@ -28,7 +29,8 @@ function isAccentWord(text: string): boolean {
 }
 
 /** Captions animados estilo karaoke: agrupa el guion en páginas por oración completa (ver
- * paginateBySentence.ts) y resalta la palabra que se está narrando en cada frame. */
+ * paginateBySentence.ts), las muestra sobre un "pill" semitransparente (sin contorno de
+ * texto) y resalta en dorado la palabra que se está narrando en cada frame. */
 export const Captions: React.FC<CaptionsProps> = ({ words }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -49,7 +51,10 @@ export const Captions: React.FC<CaptionsProps> = ({ words }) => {
           flexWrap: "wrap",
           justifyContent: "center",
           maxWidth: "85%",
-          gap: "0.5em",
+          gap: "0.6em",
+          backgroundColor: "rgba(0, 0, 0, 0.55)",
+          borderRadius: 28,
+          padding: "14px 32px",
         }}
       >
         {currentPage.tokens.map((token) => {
@@ -60,13 +65,11 @@ export const Captions: React.FC<CaptionsProps> = ({ words }) => {
             <span
               key={token.fromMs}
               style={{
-                fontFamily: "Inter, system-ui, sans-serif",
+                fontFamily,
                 fontWeight: 800,
                 fontSize: 68,
                 lineHeight: 1.2,
-                color: isActive ? "#ffe94a" : isAccent ? "#ff5a36" : "#ffffff",
-                WebkitTextStroke: "10px black",
-                paintOrder: "stroke fill",
+                color: isActive ? "#e8b84b" : isAccent ? "#7dd3c0" : "#fafafa",
                 opacity: isPast || isActive ? 1 : 0.75,
               }}
             >
