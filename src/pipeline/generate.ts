@@ -10,8 +10,13 @@ import {
   REMOTION_COMPOSITION_ID,
   REMOTION_ENTRY_POINT,
 } from "./constants.ts";
-import { generateEditPlan } from "./editPlan.ts";
-import { type ReelProps, ReelPropsSchema } from "./schema.ts";
+import { generateEditPlan, resolveEditPlanOverride } from "./editPlan.ts";
+import {
+  type EditPlan,
+  EditPlanOverrideSchema,
+  type ReelProps,
+  ReelPropsSchema,
+} from "./schema.ts";
 import { generateSpeech } from "./tts.ts";
 
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
@@ -51,6 +56,7 @@ export async function generateReel(inputDir: string): Promise<string> {
   const reelName = path.basename(absoluteInputDir);
   const scriptPath = path.join(absoluteInputDir, "script.txt");
   const imagesDir = path.join(absoluteInputDir, "images");
+  const editPlanOverridePath = path.join(absoluteInputDir, "editPlan.json");
 
   if (!existsSync(scriptPath)) {
     throw new Error(`No se encontró ${scriptPath}. Cada input necesita un script.txt.`);
@@ -86,12 +92,31 @@ export async function generateReel(inputDir: string): Promise<string> {
     `✅ Audio generado: ${tts.durationInSeconds.toFixed(2)}s, ${tts.words.length} palabras`,
   );
 
-  console.log("🎬 Generando plan de edición (Claude Code CLI)...");
-  const editPlan = await generateEditPlan({
-    scriptText,
-    imageFiles,
-    audioDurationInSeconds: tts.durationInSeconds,
-  });
+  let editPlan: EditPlan;
+  if (existsSync(editPlanOverridePath)) {
+    console.log("🎬 Usando editPlan.json (transición/Ken Burns fijados a mano)...");
+    const overrideRaw = JSON.parse(await readFile(editPlanOverridePath, "utf-8"));
+    const override = EditPlanOverrideSchema.parse(overrideRaw);
+
+    const overrideFiles = override.scenes.map((scene) => scene.imageFile);
+    const missing = imageFiles.filter((file) => !overrideFiles.includes(file));
+    const extra = overrideFiles.filter((file) => !imageFiles.includes(file));
+    if (missing.length > 0 || extra.length > 0) {
+      throw new Error(
+        `${editPlanOverridePath} no coincide con ${imagesDir}. ` +
+          `Faltan: [${missing.join(", ")}]. Sobran: [${extra.join(", ")}].`,
+      );
+    }
+
+    editPlan = resolveEditPlanOverride(override, tts.durationInSeconds);
+  } else {
+    console.log("🎬 Generando plan de edición (Claude Code CLI)...");
+    editPlan = await generateEditPlan({
+      scriptText,
+      imageFiles,
+      audioDurationInSeconds: tts.durationInSeconds,
+    });
+  }
   console.log(`✅ Plan de edición: ${editPlan.scenes.length} escenas`);
 
   const reelProps: ReelProps = ReelPropsSchema.parse({

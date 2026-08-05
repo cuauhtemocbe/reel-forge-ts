@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { type EditPlan, EditPlanSchema } from "./schema.ts";
+import { type EditPlan, type EditPlanOverride, EditPlanSchema } from "./schema.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -78,6 +78,32 @@ export function extractJson(text: string): unknown {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const raw = (fenced ? fenced[1] : text).trim();
   return JSON.parse(raw);
+}
+
+/**
+ * Convierte un `editPlan.json` de override manual (transición/Ken Burns fijos + peso
+ * relativo por escena) en un EditPlan real, repartiendo `audioDurationInSeconds` entre
+ * las escenas en proporción a su peso. Así la duración siempre queda sincronizada con el
+ * audio real generado, aunque las decisiones creativas (transición, movimiento) estén
+ * fijadas a mano en vez de decididas por Claude.
+ */
+export function resolveEditPlanOverride(
+  override: EditPlanOverride,
+  audioDurationInSeconds: number,
+): EditPlan {
+  const totalWeight = override.scenes.reduce((sum, scene) => sum + scene.weight, 0);
+
+  return EditPlanSchema.parse({
+    scenes: override.scenes.map((scene) => ({
+      imageFile: scene.imageFile,
+      transition: scene.transition,
+      kenBurns: scene.kenBurns,
+      durationInSeconds: Math.min(
+        15,
+        Math.max(1, (scene.weight / totalWeight) * audioDurationInSeconds),
+      ),
+    })),
+  });
 }
 
 /**
