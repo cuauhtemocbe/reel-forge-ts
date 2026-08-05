@@ -1,0 +1,8 @@
+Este es un guion de ejemplo. Reemplazá este texto por el speech que querés narrar en tu reel.
+
+Cada oración se va a alinear automáticamente con las imágenes de la carpeta images/ — Claude
+Code decide cuántas imágenes usar por oración, cuánto dura cada una en pantalla y qué
+transición las conecta, en base a la duración real de la voz generada.
+
+Agregá tus propias imágenes (.jpg, .jpeg, .png o .webp) en input/example/images/, en el
+orden en que querés que aparezcan, y corré: pnpm generate -- --input ./input/example
