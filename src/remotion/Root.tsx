@@ -27,8 +27,10 @@ function totalDurationInFrames(props: ReelProps): number {
     (sum, scene) => sum + Math.round(scene.durationInSeconds * props.fps),
     0,
   );
-  const transitionOverlap = Math.max(0, props.scenes.length - 1) * TRANSITION_DURATION_IN_FRAMES;
-  return Math.max(1, sceneFrames - transitionOverlap);
+  const segments = props.scenes.length + (props.outro ? 1 : 0);
+  const transitionOverlap = Math.max(0, segments - 1) * TRANSITION_DURATION_IN_FRAMES;
+  const outroFrames = props.outro ? Math.round(props.outro.durationInSeconds * props.fps) : 0;
+  return Math.max(1, sceneFrames + outroFrames - transitionOverlap);
 }
 
 export const RemotionRoot: React.FC = () => {

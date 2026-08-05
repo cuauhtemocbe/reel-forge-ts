@@ -15,6 +15,8 @@ import {
   type EditPlan,
   EditPlanOverrideSchema,
   type GenerateMode,
+  type Outro,
+  OutroConfigSchema,
   type ReelProps,
   ReelPropsSchema,
   type TtsResult,
@@ -82,6 +84,7 @@ export async function generateReel(inputDir: string, mode: GenerateMode = "all")
   const scriptPath = path.join(absoluteInputDir, "script.txt");
   const imagesDir = path.join(absoluteInputDir, "images");
   const editPlanOverridePath = path.join(absoluteInputDir, "editPlan.json");
+  const outroConfigPath = path.join(absoluteInputDir, "outro.json");
 
   if (!existsSync(scriptPath)) {
     throw new Error(`No se encontró ${scriptPath}. Cada input necesita un script.txt.`);
@@ -131,6 +134,29 @@ export async function generateReel(inputDir: string, mode: GenerateMode = "all")
     imageFiles.map((file) => cp(path.join(imagesDir, file), path.join(publicImagesDir, file))),
   );
 
+  let outro: Outro | undefined;
+  if (existsSync(outroConfigPath)) {
+    const outroConfig = OutroConfigSchema.parse(
+      JSON.parse(await readFile(outroConfigPath, "utf-8")),
+    );
+    const outroLogoSourcePath = path.join(absoluteInputDir, outroConfig.logo);
+    if (!existsSync(outroLogoSourcePath)) {
+      throw new Error(
+        `${outroConfigPath} referencia un logo que no existe: ${outroLogoSourcePath}`,
+      );
+    }
+
+    const logoFileName = `logo${path.extname(outroConfig.logo)}`;
+    await cp(outroLogoSourcePath, path.join(publicReelDir, logoFileName));
+
+    const { logo: _logo, ...outroRest } = outroConfig;
+    outro = {
+      ...outroRest,
+      logoSrc: publicAssetPath(`reels/${reelName}/${logoFileName}`),
+    };
+    console.log(`✅ Tarjeta final: ${outro.bullets.length} bullets + logo`);
+  }
+
   let editPlan: EditPlan;
   if (existsSync(editPlanOverridePath)) {
     console.log("🎬 Usando editPlan.json (transición/Ken Burns fijados a mano)...");
@@ -168,6 +194,7 @@ export async function generateReel(inputDir: string, mode: GenerateMode = "all")
     fps: DEFAULT_FPS,
     width: DEFAULT_WIDTH,
     height: DEFAULT_HEIGHT,
+    outro,
   });
 
   const outputDir = path.join(projectRoot, "output");

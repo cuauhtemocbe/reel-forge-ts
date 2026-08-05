@@ -7,6 +7,7 @@ import { wipe } from "@remotion/transitions/wipe";
 import { AbsoluteFill, Audio } from "remotion";
 import type { ReelProps, TransitionType } from "../pipeline/schema.ts";
 import { Captions } from "./components/Captions.tsx";
+import { EndCard } from "./components/EndCard.tsx";
 import { KenBurnsImage } from "./components/KenBurnsImage.tsx";
 
 /** Cuántos frames dura el cruce entre dos escenas — se "come" ese tiempo de ambas
@@ -39,7 +40,7 @@ function presentationFor(transition: TransitionType): AnyTransitionPresentation 
   }
 }
 
-export const ReelComposition: React.FC<ReelProps> = ({ scenes, audioSrc, words, fps }) => {
+export const ReelComposition: React.FC<ReelProps> = ({ scenes, audioSrc, words, fps, outro }) => {
   return (
     <AbsoluteFill style={{ backgroundColor: "black" }}>
       <TransitionSeries>
@@ -70,8 +71,25 @@ export const ReelComposition: React.FC<ReelProps> = ({ scenes, audioSrc, words, 
 
           return [transitionElement, sequence];
         })}
+        {outro
+          ? [
+              <TransitionSeries.Transition
+                key="transition-outro"
+                presentation={presentationFor("fade")}
+                timing={linearTiming({ durationInFrames: TRANSITION_DURATION_IN_FRAMES })}
+              />,
+              <TransitionSeries.Sequence
+                key="scene-outro"
+                durationInFrames={Math.round(outro.durationInSeconds * fps)}
+              >
+                <EndCard {...outro} />
+              </TransitionSeries.Sequence>,
+            ]
+          : null}
       </TransitionSeries>
       {audioSrc ? <Audio src={audioSrc} /> : null}
+      {/* La tarjeta final es contenido puramente visual, no narrado — los captions solo
+      tienen sentido mientras hay audio/escenas de Ken Burns encima. */}
       <Captions words={words} />
     </AbsoluteFill>
   );
