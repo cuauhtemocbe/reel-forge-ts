@@ -40,8 +40,13 @@ export const Captions: React.FC<CaptionsProps> = ({ words }) => {
 
   if (words.length === 0) return null;
 
-  const captions: Caption[] = words.map((w) => ({
-    text: w.word,
+  // createTikTokStyleCaptions solo corta una página nueva en un token que empieza con
+  // espacio — es el formato típico de alineación por carácter (" hola", " mundo"). Nuestras
+  // palabras vienen sin ese espacio inicial (alignmentToWords las separa por whitespace y
+  // lo descarta), así que sin este prefijo NUNCA detecta un límite de página y agrupa el
+  // guion completo en una sola página del largo de todo el audio.
+  const captions: Caption[] = words.map((w, i) => ({
+    text: `${i === 0 ? "" : " "}${w.word}`,
     startMs: w.start * 1000,
     endMs: w.end * 1000,
     timestampMs: null,
@@ -67,7 +72,7 @@ export const Captions: React.FC<CaptionsProps> = ({ words }) => {
           flexWrap: "wrap",
           justifyContent: "center",
           maxWidth: "85%",
-          gap: "0.35em",
+          gap: "0.5em",
         }}
       >
         {currentPage.tokens.map((token) => {
@@ -86,10 +91,9 @@ export const Captions: React.FC<CaptionsProps> = ({ words }) => {
                 WebkitTextStroke: "10px black",
                 paintOrder: "stroke fill",
                 opacity: isPast || isActive ? 1 : 0.75,
-                transform: isActive ? "scale(1.08)" : "scale(1)",
               }}
             >
-              {token.text}
+              {token.text.trim()}
             </span>
           );
         })}
