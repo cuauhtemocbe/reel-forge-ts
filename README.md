@@ -60,11 +60,24 @@ cp .env.example .env
 2. Generá el reel:
 
    ```bash
-   pnpm generate -- --input ./input/mi-reel
+   pnpm generate --input ./input/mi-reel
    ```
 
    Esto corre el pipeline completo y deja el resultado en `output/mi-reel.mp4` (y
    `output/mi-reel.props.json` con el plan de edición completo, útil para debug).
+
+   `--mode` controla qué etapas corren (default `all`):
+
+   ```bash
+   pnpm generate --input ./input/mi-reel --mode audio   # solo TTS — probar una voz sin renderizar
+   pnpm generate --input ./input/mi-reel --mode video    # reusa el audio ya generado, sin llamar a ElevenLabs
+   ```
+
+   `--mode video` necesita que haya corrido antes `all` o `audio` para ese reel (deja
+   `public/reels/<reel>/tts.json` como caché) — si no, falla con un mensaje claro.
+
+   Nota: no le pases `--` antes de `--input` — a diferencia de npm, pnpm reenvía ese `--`
+   tal cual al script en vez de descartarlo, y `cli.ts` lo rechaza como argumento inesperado.
 
 3. (Opcional) Previsualizá/ajustá la composition en vivo con Remotion Studio:
 
@@ -101,7 +114,7 @@ src/
 
 ```bash
 pnpm studio            # Remotion Studio (preview en vivo del composition)
-pnpm generate -- --input <carpeta>   # corre el pipeline completo
+pnpm generate --input <carpeta> [--mode all|audio|video]   # ver sección de uso arriba
 pnpm typecheck          # tsc --noEmit
 pnpm test               # vitest en modo watch
 pnpm test:run           # vitest una sola corrida
