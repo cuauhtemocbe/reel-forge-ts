@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { EditPlanSchema, ReelPropsSchema, TtsResultSchema } from "../pipeline/schema.ts";
+import {
+  EditPlanSchema,
+  GenerateModeSchema,
+  ReelPropsSchema,
+  TtsResultSchema,
+} from "../pipeline/schema.ts";
+
+describe("GenerateModeSchema", () => {
+  it.each(["all", "audio", "video"])("acepta el modo %s", (mode) => {
+    expect(GenerateModeSchema.safeParse(mode).success).toBe(true);
+  });
+
+  it("rechaza un modo desconocido", () => {
+    expect(GenerateModeSchema.safeParse("invalido").success).toBe(false);
+  });
+
+  it("rechaza un valor vacío", () => {
+    expect(GenerateModeSchema.safeParse("").success).toBe(false);
+  });
+});
 
 describe("EditPlanSchema", () => {
   it("acepta un plan válido", () => {

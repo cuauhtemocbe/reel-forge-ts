@@ -14,10 +14,12 @@ import { generateEditPlan, resolveEditPlanOverride } from "./editPlan.ts";
 import {
   type EditPlan,
   EditPlanOverrideSchema,
+  type GenerateMode,
   type ReelProps,
   ReelPropsSchema,
+  type TtsResult,
 } from "./schema.ts";
-import { generateSpeech } from "./tts.ts";
+import { generateSpeech, loadCachedTts, saveTtsCache } from "./tts.ts";
 
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 const projectRoot = path.resolve(import.meta.dirname, "..", "..");
@@ -46,12 +48,21 @@ async function listImageFiles(imagesDir: string): Promise<string[]> {
 }
 
 /**
- * Genera un reel completo a partir de una carpeta de input con `script.txt` + `images/`:
- * TTS (ElevenLabs) → plan de edición (Claude Code CLI) → composition de Remotion → mp4.
+ * Genera un reel a partir de una carpeta de input con `script.txt` (+ `images/` salvo en
+ * modo `audio`): TTS (ElevenLabs) → plan de edición (Claude Code CLI) → composition de
+ * Remotion → mp4.
  *
- * Devuelve la ruta absoluta del mp4 generado.
+ * `mode` controla qué etapas corren:
+ * - `all` (default): TTS + plan de edición + render, como siempre.
+ * - `audio`: solo TTS — guarda `audio.mp3`/`tts.json` y retorna sin renderizar. No exige
+ *   `images/` ni `editPlan.json`.
+ * - `video`: reusa el `tts.json` de una corrida `all`/`audio` anterior (sin llamar a
+ *   ElevenLabs) y corre plan de edición + render.
+ *
+ * Devuelve la ruta absoluta del artefacto generado: el mp3 en modo `audio`, el mp4 en
+ * los demás casos.
  */
-export async function generateReel(inputDir: string): Promise<string> {
+export async function generateReel(inputDir: string, mode: GenerateMode = "all"): Promise<string> {
   const absoluteInputDir = path.resolve(inputDir);
   const reelName = path.basename(absoluteInputDir);
   const scriptPath = path.join(absoluteInputDir, "script.txt");
@@ -61,13 +72,35 @@ export async function generateReel(inputDir: string): Promise<string> {
   if (!existsSync(scriptPath)) {
     throw new Error(`No se encontró ${scriptPath}. Cada input necesita un script.txt.`);
   }
-  if (!existsSync(imagesDir)) {
-    throw new Error(`No se encontró ${imagesDir}. Cada input necesita una carpeta images/.`);
-  }
 
   const scriptText = (await readFile(scriptPath, "utf-8")).trim();
   if (!scriptText) {
     throw new Error(`${scriptPath} está vacío.`);
+  }
+
+  // Alcanza con public/reels/<reel>/ para el audio — no se toca images/ acá, así que una
+  // corrida en modo audio/video nunca pisa las imágenes ya copiadas por una corrida previa.
+  const publicReelDir = path.join(projectRoot, "public", "reels", reelName);
+  await mkdir(publicReelDir, { recursive: true });
+
+  let tts: TtsResult;
+  if (mode === "video") {
+    console.log("🗣️  Reusando audio cacheado (--mode video, sin llamar a ElevenLabs)...");
+    tts = await loadCachedTts(publicReelDir);
+  } else {
+    console.log("🗣️  Generando voz (ElevenLabs)...");
+    tts = await generateSpeech(scriptText, publicReelDir);
+    await saveTtsCache(publicReelDir, tts);
+  }
+  console.log(`✅ Audio: ${tts.durationInSeconds.toFixed(2)}s, ${tts.words.length} palabras`);
+
+  if (mode === "audio") {
+    console.log(`✅ Audio listo: ${tts.audioPath}`);
+    return tts.audioPath;
+  }
+
+  if (!existsSync(imagesDir)) {
+    throw new Error(`No se encontró ${imagesDir}. Cada input necesita una carpeta images/.`);
   }
 
   const imageFiles = await listImageFiles(imagesDir);
@@ -76,20 +109,12 @@ export async function generateReel(inputDir: string): Promise<string> {
   }
 
   // Remotion solo puede servir assets que viven dentro de public/ (ver staticFile()) —
-  // copiamos la copia de trabajo ahí, namespaced por reel para no pisar otros reels.
-  const publicReelDir = path.join(projectRoot, "public", "reels", reelName);
-  await rm(publicReelDir, { recursive: true, force: true });
-  await mkdir(path.join(publicReelDir, "images"), { recursive: true });
+  // copiamos la copia de trabajo ahí. Acotado a images/ para no tocar audio.mp3/tts.json.
+  const publicImagesDir = path.join(publicReelDir, "images");
+  await rm(publicImagesDir, { recursive: true, force: true });
+  await mkdir(publicImagesDir, { recursive: true });
   await Promise.all(
-    imageFiles.map((file) =>
-      cp(path.join(imagesDir, file), path.join(publicReelDir, "images", file)),
-    ),
-  );
-
-  console.log(`🗣️  Generando voz (ElevenLabs) para ${imageFiles.length} imágenes...`);
-  const tts = await generateSpeech(scriptText, publicReelDir);
-  console.log(
-    `✅ Audio generado: ${tts.durationInSeconds.toFixed(2)}s, ${tts.words.length} palabras`,
+    imageFiles.map((file) => cp(path.join(imagesDir, file), path.join(publicImagesDir, file))),
   );
 
   let editPlan: EditPlan;
@@ -98,13 +123,13 @@ export async function generateReel(inputDir: string): Promise<string> {
     const overrideRaw = JSON.parse(await readFile(editPlanOverridePath, "utf-8"));
     const override = EditPlanOverrideSchema.parse(overrideRaw);
 
+    // El override puede seleccionar un subconjunto curado de images/ (no necesita usarlas
+    // todas) — solo es un error si referencia un archivo que ni siquiera existe ahí.
     const overrideFiles = override.scenes.map((scene) => scene.imageFile);
-    const missing = imageFiles.filter((file) => !overrideFiles.includes(file));
     const extra = overrideFiles.filter((file) => !imageFiles.includes(file));
-    if (missing.length > 0 || extra.length > 0) {
+    if (extra.length > 0) {
       throw new Error(
-        `${editPlanOverridePath} no coincide con ${imagesDir}. ` +
-          `Faltan: [${missing.join(", ")}]. Sobran: [${extra.join(", ")}].`,
+        `${editPlanOverridePath} referencia imágenes que no están en ${imagesDir}: [${extra.join(", ")}].`,
       );
     }
 

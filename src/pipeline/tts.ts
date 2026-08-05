@@ -1,4 +1,5 @@
-import { writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type ElevenLabs, ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import { type TtsResult, TtsResultSchema, type WordTimestamp } from "./schema.ts";
@@ -82,4 +83,41 @@ export async function generateSpeech(scriptText: string, outputDir: string): Pro
     durationInSeconds: lastEnd,
     words,
   });
+}
+
+function ttsCachePath(outputDir: string): string {
+  return join(outputDir, "tts.json");
+}
+
+/**
+ * Persiste un `TtsResult` como `tts.json` en `outputDir`, junto al `audio.mp3` que ya
+ * escribió `generateSpeech`. Es el caché que `--mode video` reusa para saltear ElevenLabs.
+ */
+export async function saveTtsCache(outputDir: string, result: TtsResult): Promise<void> {
+  await writeFile(ttsCachePath(outputDir), JSON.stringify(result, null, 2));
+}
+
+/**
+ * Lee y valida el `tts.json` que dejó una corrida anterior en modo `all`/`audio`, para que
+ * `--mode video` pueda reusar el audio ya generado sin llamar a ElevenLabs. Tira un error
+ * accionable si nunca se corrió, o si el audio.mp3 que referencia ya no está en disco.
+ */
+export async function loadCachedTts(outputDir: string): Promise<TtsResult> {
+  const cachePath = ttsCachePath(outputDir);
+  if (!existsSync(cachePath)) {
+    throw new Error(
+      `No se encontró ${cachePath}. Corré --mode all o --mode audio primero para generar el audio.`,
+    );
+  }
+
+  const raw = JSON.parse(await readFile(cachePath, "utf-8"));
+  const result = TtsResultSchema.parse(raw);
+
+  if (!existsSync(result.audioPath)) {
+    throw new Error(
+      `${cachePath} existe pero no se encontró ${result.audioPath}. Corré --mode all o --mode audio de nuevo.`,
+    );
+  }
+
+  return result;
 }
