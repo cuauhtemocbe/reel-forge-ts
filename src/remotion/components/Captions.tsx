@@ -1,14 +1,10 @@
-import { type Caption, createTikTokStyleCaptions } from "@remotion/captions";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import type { WordTimestamp } from "../../pipeline/schema.ts";
+import { paginateBySentence } from "../captionPages.ts";
 
 interface CaptionsProps {
   words: WordTimestamp[];
 }
-
-/** Cuánto tiempo puede separar a dos palabras para seguir agrupadas en la misma
- * "página" de captions en pantalla — más alto agrupa más palabras juntas por página. */
-const COMBINE_TOKENS_WITHIN_MS = 1200;
 
 /** Palabras de frases clave de venta (nombre, ubicación, argumentos de seguridad) que se
  * destacan en color de acento aunque no sean la palabra activa, para que la frase completa
@@ -31,8 +27,8 @@ function isAccentWord(text: string): boolean {
   return ACCENT_WORDS.has(text.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ""));
 }
 
-/** Captions animados estilo karaoke: agrupa el guion en páginas cortas (vía
- * @remotion/captions) y resalta la palabra que se está narrando en cada frame. */
+/** Captions animados estilo karaoke: agrupa el guion en páginas por oración completa (ver
+ * paginateBySentence.ts) y resalta la palabra que se está narrando en cada frame. */
 export const Captions: React.FC<CaptionsProps> = ({ words }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -40,27 +36,8 @@ export const Captions: React.FC<CaptionsProps> = ({ words }) => {
 
   if (words.length === 0) return null;
 
-  // createTikTokStyleCaptions solo corta una página nueva en un token que empieza con
-  // espacio — es el formato típico de alineación por carácter (" hola", " mundo"). Nuestras
-  // palabras vienen sin ese espacio inicial (alignmentToWords las separa por whitespace y
-  // lo descarta), así que sin este prefijo NUNCA detecta un límite de página y agrupa el
-  // guion completo en una sola página del largo de todo el audio.
-  const captions: Caption[] = words.map((w, i) => ({
-    text: `${i === 0 ? "" : " "}${w.word}`,
-    startMs: w.start * 1000,
-    endMs: w.end * 1000,
-    timestampMs: null,
-    confidence: null,
-  }));
-
-  const { pages } = createTikTokStyleCaptions({
-    captions,
-    combineTokensWithinMilliseconds: COMBINE_TOKENS_WITHIN_MS,
-  });
-
-  const currentPage = pages.find(
-    (page) => currentMs >= page.startMs && currentMs < page.startMs + page.durationMs,
-  );
+  const pages = paginateBySentence(words);
+  const currentPage = pages.find((page) => currentMs >= page.startMs && currentMs < page.endMs);
 
   if (!currentPage) return null;
 
@@ -93,7 +70,7 @@ export const Captions: React.FC<CaptionsProps> = ({ words }) => {
                 opacity: isPast || isActive ? 1 : 0.75,
               }}
             >
-              {token.text.trim()}
+              {token.text}
             </span>
           );
         })}
