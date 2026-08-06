@@ -1,4 +1,5 @@
-import { AbsoluteFill, Img } from "remotion";
+import { AbsoluteFill, Img, interpolate, useCurrentFrame } from "remotion";
+import { DEFAULT_FPS } from "../../pipeline/constants.ts";
 import type { Outro } from "../../pipeline/schema.ts";
 import { fontFamily } from "../font.ts";
 
@@ -9,7 +10,17 @@ const BLUE = "#2cbcee";
 
 /** Tarjeta final de marca: logo + bullets + CTA. Es contenido puramente visual (nunca pasa
  * por ElevenLabs ni por los captions animados) que se agrega después de la última escena. */
-export const EndCard: React.FC<Outro> = ({ logoSrc, bullets, cta, ctaUrl }) => {
+export const EndCard: React.FC<Outro> = ({ logoSrc, bullets, cta, ctaUrl, durationInSeconds }) => {
+  const frame = useCurrentFrame();
+  // Zoom-in sutil sobre toda la duración de la tarjeta, mismo criterio que el preset
+  // "zoom-in" de KenBurnsImage — así el logo no queda completamente estático al cierre.
+  const logoScale = interpolate(
+    frame,
+    [0, Math.round(durationInSeconds * DEFAULT_FPS)],
+    [1, 1.08],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+  );
+
   return (
     <AbsoluteFill
       style={{
@@ -21,7 +32,13 @@ export const EndCard: React.FC<Outro> = ({ logoSrc, bullets, cta, ctaUrl }) => {
     >
       <Img
         src={logoSrc}
-        style={{ width: 260, height: 260, objectFit: "contain", marginBottom: 56 }}
+        style={{
+          width: 260,
+          height: 260,
+          objectFit: "contain",
+          marginBottom: 56,
+          transform: `scale(${logoScale})`,
+        }}
       />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 24, marginBottom: 64 }}>
