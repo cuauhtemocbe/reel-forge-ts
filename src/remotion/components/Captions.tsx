@@ -57,26 +57,26 @@ export const Captions: React.FC<CaptionsProps> = ({ words }) => {
           padding: "14px 32px",
         }}
       >
-        {currentPage.tokens.map((token) => {
-          const isActive = currentMs >= token.fromMs && currentMs < token.toMs;
-          const isPast = currentMs >= token.toMs;
-          const isAccent = isAccentWord(token.text);
-          return (
-            <span
-              key={token.fromMs}
-              style={{
-                fontFamily,
-                fontWeight: 800,
-                fontSize: 68,
-                lineHeight: 1.2,
-                color: isActive ? "#e8b84b" : isAccent ? "#7dd3c0" : "#fafafa",
-                opacity: isPast || isActive ? 1 : 0.75,
-              }}
-            >
-              {token.text}
-            </span>
-          );
-        })}
+        {currentPage.tokens
+          .filter((token) => currentMs >= token.fromMs)
+          .map((token) => {
+            const isActive = currentMs < token.toMs;
+            const isAccent = isAccentWord(token.text);
+            return (
+              <span
+                key={token.fromMs}
+                style={{
+                  fontFamily,
+                  fontWeight: 800,
+                  fontSize: 68,
+                  lineHeight: 1.2,
+                  color: isActive ? "#e8b84b" : isAccent ? "#7dd3c0" : "#fafafa",
+                }}
+              >
+                {token.text}
+              </span>
+            );
+          })}
       </div>
     </AbsoluteFill>
   );
