@@ -46,6 +46,7 @@ Thumbs.db
 # Claude Code
 .mcp.json
 .claude/
+CLAUDE.md
 
 # Reel pipeline working data — inputs/outputs are personal media, not source
 input/*
