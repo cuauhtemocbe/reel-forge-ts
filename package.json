@@ -25,7 +25,7 @@
     "clean": "rm -rf node_modules .pnpm-store output/*"
   },
   "dependencies": {
-    "@elevenlabs/elevenlabs-js": "2.60.0",
+    "@elevenlabs/elevenlabs-js": "2.61.0",
     "@remotion/bundler": "4.0.506",
     "@remotion/cli": "4.0.506",
     "@remotion/google-fonts": "4.0.506",
@@ -46,7 +46,7 @@
     "@vitest/ui": "4.1.10",
     "husky": "9.1.7",
     "lint-staged": "17.3.0",
-    "tsx": "4.23.5",
+    "tsx": "4.23.8",
     "typescript": "6.0.3",
     "vitest": "4.1.10"
   }
