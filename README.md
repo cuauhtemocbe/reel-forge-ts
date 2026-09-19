@@ -132,6 +132,8 @@ pnpm validate            # alias de `make validate` (typecheck + test:coverage +
   mantuvo el `Makefile`/Husky del boilerplate base (`dockyard2sail-ts`) para validación
   y hooks de git, pero se descartó Vite, Docker/DevContainers, GitHub Actions y
   SonarQube por no aportar valor acá.
+- **Trivy en `pre-push`**: el hook `pre-push` corre primero un escaneo Trivy fail-closed
+  en cada push (`trivy` debe estar instalado localmente; ver `.claude/skills/trivy-scan/setup.md`).
 - **Assets vía `public/`**: Remotion solo puede servir archivos dentro de `public/` (ver
   [staticFile()](https://www.remotion.dev/docs/staticfile)) — `generate.ts` copia las
   imágenes y el audio de cada reel a `public/reels/<nombre>/` antes de renderizar
