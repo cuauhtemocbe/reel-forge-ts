@@ -30,6 +30,10 @@ dist/
 coverage/
 *.lcov
 
+# SonarQube local scanner artifacts
+.scannerwork/
+.sonarlint/
+
 # Logs
 *.log
 
