@@ -130,8 +130,13 @@ pnpm validate            # alias de `make validate` (typecheck + test:coverage +
   fuera de alcance de este proyecto.
 - **Sin CI/Docker/deploy**: es una herramienta de un solo usuario que corre local — se
   mantuvo el `Makefile`/Husky del boilerplate base (`dockyard2sail-ts`) para validación
-  y hooks de git, pero se descartó Vite, Docker/DevContainers, GitHub Actions y
-  SonarQube por no aportar valor acá.
+  y hooks de git, pero se descartó Vite, Docker/DevContainers y GitHub Actions por no
+  aportar valor acá.
+- **SonarQube solo local**: `sonar-project.properties` existe para correr `/sonar-check`
+  a mano contra un SonarQube local (code smells + cobertura). No forma parte de CI,
+  `make validate` ni `pre-push`. El gate por defecto ("Sonar way") se mantiene y la
+  cobertura se reporta tal cual: `generate.ts`/`editPlan.ts`/`tts.ts` mezclan I/O externo
+  que no se testea por diseño, así que el número total es bajo a propósito.
 - **Trivy en `pre-push`**: el hook `pre-push` corre primero un escaneo Trivy fail-closed
   en cada push (`trivy` debe estar instalado localmente; ver `.claude/skills/trivy-scan/setup.md`).
 - **Assets vía `public/`**: Remotion solo puede servir archivos dentro de `public/` (ver
